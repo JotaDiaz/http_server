@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-//#include "http_handler.h"
+#include "http_handler.h"
 
 
 #define BACKLOG 10 // cant de peticiones pendientes en listen()
@@ -55,8 +55,19 @@ int main(int argc, char *argv[])
   printf("escuchando %d", port);
 
 
-  while (true) {
+  while (1) {
+    clilen = (sizeof(cli_addr));
+    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+
+    if(newsockfd < 0)
+      error("error en accept");
+
+    cliente_handler(newsockfd);
+    close(newsockfd);
 
   }
+
+  close(sockfd);
+  return 0;
   
 }
