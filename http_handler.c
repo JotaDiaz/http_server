@@ -57,22 +57,22 @@ void cliente_handler(int sockfd){
         return;
     }
 
-    printf("request recibida ---");
+    printf("request recibida ---\n");
 
     if(!parsear_peticion(buffer, metodo_http, uri, version)){
-        printf("fallo parsear peticion");
+        printf("fallo parsear peticion\n");
         enviar_error(sockfd,400,"bad request");
         return;
     }
 
     if (!es_request_valido(uri, version)) {
-        printf("fallo es requiest valido");
+        printf("fallo es requiest valido\n");
         enviar_error(sockfd, 400, "Bad Request");
         return;
     }
 
     if (strcasecmp(metodo_http, "GET") != 0) {
-        printf("no es GET");
+        printf("no es GET\n");
         enviar_error(sockfd,501, "not implemented");
         return;
     }

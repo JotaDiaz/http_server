@@ -14,4 +14,4 @@ $(TARGET): $(OBJS)
 clean:
 	rm -f $(OBJS) $(TARGET)
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) 3490
