@@ -39,6 +39,14 @@ int main(int argc, char *argv[])
   if (sockfd < 0)
     error("error al crear socket");
 
+
+  int yes = 1;
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {  
+    // desbloquea el puerto
+      perror("setsockopt"); 
+      exit(1);
+  }
+
   memset(&serv_addr,0,sizeof(serv_addr)); // aca tambien se 'blanquea' el campo sin_zero de sockaddr_in
   port = PORT;
 
