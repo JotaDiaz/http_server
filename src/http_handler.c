@@ -4,39 +4,10 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include "http_handler.h"
-
+#include "utils.h" 
 
 #define TAMANO_BUFFER 4096
 #define DOCUMENT_ROOT "./public"
-
-void enviar_error(int sockfd, int codigo, char *mensaje){
-    char respuesta[1024];
-    sprintf(respuesta, "HTTP/1.0 %d %s\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Error %d</h1><p>%s</p></body></html>", codigo, mensaje, codigo, mensaje);
-    send(sockfd, respuesta, strlen(respuesta), 0);
-}
-
-
-static int es_request_valido(char *uri, char *version) {  
-    if (uri[0] != '/') {
-        printf("uri debe empezar con / : %s\n", uri);
-        return 0;
-    }
-  
-    if (strncmp(version, "HTTP/", 5) != 0) {
-        printf("no es http: %s\n", version);
-        return 0;
-    }
-    
-    return 1;
-}
-
-
-int parsear_peticion(char *buffer, char *metodo_http, char *uri, char* version ){
-    // lee del buffer esperando recibir una ppeticion bien formada
-    int leidos = sscanf(buffer, "%s %s %s", metodo_http, uri, version);
-    return (leidos >= 3);
-}
-
 
 void cliente_handler(int sockfd){
     char buffer[TAMANO_BUFFER];
