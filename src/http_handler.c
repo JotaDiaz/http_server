@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include "http_handler.h"
+#include <sys/stat.h>
 #include "utils.h" 
 
 #define TAMANO_BUFFER 4096
@@ -18,6 +19,7 @@ void cliente_handler(int sockfd){
     char uri[256];
     char version[16];
     char path_completo[512];
+    struct stat stat_archivo;
 
     memset(buffer,0, TAMANO_BUFFER);
 
@@ -50,7 +52,23 @@ void cliente_handler(int sockfd){
 
     sprintf(path_completo, "%s%s", DOCUMENT_ROOT, uri); //arma la ruta donde el servidor deberia buscar 
 
-    char body[1024];
+
+    if(stat(path_completo, &stat_archivo) < 0){
+        printf("archivo no encontrado en %s \n", path_completo);
+        enviar_error(sockfd,404, "not found");
+        return;
+    }
+
+    if (S_ISDIR(stat_archivo.st_mode)){
+        printf("es una carpeta \n");
+        enviar_error(sockfd,403, "forbidden");
+        return;
+        
+    }
+
+    servir_archivo(sockfd,path_completo);
+
+/*     char body[1024];
     sprintf(body, 
         "<html><body>"
         "<h1>ok</h1>"
@@ -67,12 +85,12 @@ void cliente_handler(int sockfd){
         "\r\n"
         "%s", 
         strlen(body), body);
-
-    n = send(sockfd,response,strlen(response), 0);
+ */
+/*     n = send(sockfd,response,strlen(response), 0);
 
      if(n < 0){
       perror("error en send");
-    }
+    } */
 }
 
 

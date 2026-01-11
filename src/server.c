@@ -16,7 +16,7 @@ void error(const char *msg){
   exit(1);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
   int sockfd; // file descriptor principal
   int newsockfd; // file descriptor del cliente
