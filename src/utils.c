@@ -3,11 +3,13 @@
 #include <sys/socket.h>
 #include "utils.h"
 #include <sys/stat.h>
+#include <sys/types.h>
 
 void enviar_error(int sockfd, int codigo, char *mensaje){
     char respuesta[1024];
-    sprintf(respuesta, "HTTP/1.0 %d %s\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Error %d</h1><p>%s</p></body></html>", codigo, mensaje, codigo, mensaje);
-    send(sockfd, respuesta, strlen(respuesta), 0);
+    int len = sprintf(respuesta, "HTTP/1.0 %d %s\r\nContent-Type: text/html\r\n\r\n<html><body><h1>Error %d</h1><p>%s</p></body></html>", codigo, mensaje, codigo, mensaje);
+    //send(sockfd, respuesta, strlen(respuesta), 0);
+    enviar_todo(sockfd, respuesta, len);
 }
 
 
@@ -50,6 +52,25 @@ const char* obtener_tipo_mime(const char *path) {
     return "application/octet-stream"; 
 }
 
+
+ssize_t enviar_todo(int sockfd, const void *buf, size_t len) {
+    size_t total = 0;
+    const char *p = buf;
+
+    while (total < len) {
+        ssize_t enviados = send(sockfd, p + total, len - total, 0);
+
+        if (enviados <= 0) {
+            return -1; 
+        }
+
+        total += enviados;
+    }
+
+    return total;
+}
+
+
 void servir_archivo(int sockfd, char *path) {
     FILE *archivo = fopen(path, "rb");
     
@@ -74,7 +95,9 @@ void servir_archivo(int sockfd, char *path) {
             "\r\n", 
             mime_type, filesize);
 
-    send(sockfd, headers, strlen(headers), 0); //primero va el header
+    //send(sockfd, headers, strlen(headers), 0); //primero va el header
+    if(enviar_todo(sockfd,headers,strlen(headers)) < 0)
+        enviar_error(sockfd,500, "server error"); 
 
 
     //el body va en paquetes de 4kb
@@ -82,7 +105,9 @@ void servir_archivo(int sockfd, char *path) {
     size_t bytes_leidos;
 
     while ((bytes_leidos = fread(file_buffer, 1, sizeof(file_buffer), archivo)) > 0) {
-        if (send(sockfd, file_buffer, bytes_leidos, 0) < 0) {
+
+        if(enviar_todo(sockfd, file_buffer, bytes_leidos) < 0){
+        //if (send(sockfd, file_buffer, bytes_leidos, 0) < 0) {
             perror("Error enviando archivo");
             break;
         }

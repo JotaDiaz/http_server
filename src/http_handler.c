@@ -34,7 +34,7 @@ void cliente_handler(int sockfd){
 
     if(!parsear_peticion(buffer, metodo_http, uri, version)){
         printf("fallo parsear peticion\n");
-        enviar_error(sockfd,400,"bad request");
+        enviar_error(sockfd,400,"bad request mogolico");
         return;
     }
 
