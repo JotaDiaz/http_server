@@ -20,21 +20,38 @@ void cliente_handler(int sockfd){
     char version[16];
     char path_completo[512];
     struct stat stat_archivo;
-
+    
     memset(buffer,0, TAMANO_BUFFER);
-
+    
     //n = recv(sockfd, buffer, TAMANO_BUFFER -1, MSG_NOSIGNAL);
     n = recv_headers(sockfd,buffer, TAMANO_BUFFER -1);
     if (n <= 0) {
         enviar_error(sockfd, 400, "Bad Request");
         return;
     }
-
+    
     printf("request recibida ---\n");
-
+    
     if(!parsear_peticion(buffer, metodo_http, uri, version)){
         printf("fallo parsear peticion\n");
         enviar_error(sockfd,400,"Bad Request");
+        return;
+    }
+    
+    /*
+    comentado para poder probar desde el navegador
+    const char *versiones_validas[] = {"HTTP/1.0", "HTTP/0.9"};
+    int num_versiones = sizeof(versiones_validas) / sizeof(versiones_validas[0]);
+
+    
+    if(!es_version_valida(version, versiones_validas, num_versiones)){
+        printf("version HTTP no valida\n");
+        enviar_error(sockfd, 500, "version HTTP no soportada");        
+        return;
+    } */
+    if (strcasecmp(metodo_http, "GET") != 0) {
+        printf("no es GET\n");
+        enviar_error(sockfd,501, "Not Implemented");
         return;
     }
 
@@ -44,11 +61,6 @@ void cliente_handler(int sockfd){
         return;
     }
 
-    if (strcasecmp(metodo_http, "GET") != 0) {
-        printf("no es GET\n");
-        enviar_error(sockfd,501, "Not Implemented");
-        return;
-    }
 
     sprintf(path_completo, "%s%s", DOCUMENT_ROOT, uri); //arma la ruta donde el servidor deberia buscar 
 
