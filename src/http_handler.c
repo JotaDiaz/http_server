@@ -23,10 +23,10 @@ void cliente_handler(int sockfd){
 
     memset(buffer,0, TAMANO_BUFFER);
 
-    n = recv(sockfd, buffer, TAMANO_BUFFER -1, MSG_NOSIGNAL);
-
-    if (n < 0){
-        perror("error en recv");
+    //n = recv(sockfd, buffer, TAMANO_BUFFER -1, MSG_NOSIGNAL);
+    n = recv_headers(sockfd,buffer, TAMANO_BUFFER -1);
+    if (n <= 0) {
+        enviar_error(sockfd, 400, "Bad Request");
         return;
     }
 
@@ -34,7 +34,7 @@ void cliente_handler(int sockfd){
 
     if(!parsear_peticion(buffer, metodo_http, uri, version)){
         printf("fallo parsear peticion\n");
-        enviar_error(sockfd,400,"bad request mogolico");
+        enviar_error(sockfd,400,"Bad Request");
         return;
     }
 
@@ -46,7 +46,7 @@ void cliente_handler(int sockfd){
 
     if (strcasecmp(metodo_http, "GET") != 0) {
         printf("no es GET\n");
-        enviar_error(sockfd,501, "not implemented");
+        enviar_error(sockfd,501, "Not Implemented");
         return;
     }
 
@@ -55,17 +55,17 @@ void cliente_handler(int sockfd){
 
     if(stat(path_completo, &stat_archivo) < 0){
         printf("archivo no encontrado en %s \n", path_completo);
-        enviar_error(sockfd,404, "not found");
+        enviar_error(sockfd,404, "Not Found");
         return;
     }
 
-    if (S_ISDIR(stat_archivo.st_mode)){
-        printf("es una carpeta \n");
-        enviar_error(sockfd,403, "forbidden");
-        return;
-        
+    if (S_ISDIR(stat_archivo.st_mode)) {
+        strncat(path_completo, "/index.html", sizeof(path_completo) - strlen(path_completo) - 1);
+        if (stat(path_completo, &stat_archivo) < 0) {
+            enviar_error(sockfd, 403, "Forbidden");
+            return;
+        }
     }
-
     servir_archivo(sockfd,path_completo);
 
 /*     char body[1024];
