@@ -28,70 +28,52 @@ const char* obtener_tipo_mime(const char *path) {
     return "application/octet-stream"; 
 }
 
-// Nueva versión thread-safe (SIN VARIABLES GLOBALES)
-int validar_ruta_safe(char *uri, char *document_root, 
-                      char *path_completo, size_t path_len, 
-                      struct stat *stat_archivo,
-                      char *path_sanitizado_buf,
-                      char *real_doc_root_buf) {
-    
-    snprintf(path_completo, path_len, "%s%s", document_root, uri);
+int validar_ruta(char *uri, char *document_root, char *path_completo, size_t path_len, struct stat *stat_archivo) {
 
-    if (!realpath(path_completo, path_sanitizado_buf)) {
-        return -1; // Not found
-    }
-
-    if (!realpath(document_root, real_doc_root_buf)) {
-        return -2; // Internal error
-    }
-
-    if (strncmp(path_sanitizado_buf, real_doc_root_buf, strlen(real_doc_root_buf)) != 0) {
-        return -3; // Forbidden
-    }
-
-    if (stat(path_sanitizado_buf, stat_archivo) < 0) {
-        return -1; // Not found
-    }
-
-    strncpy(path_completo, path_sanitizado_buf, path_len - 1);
-    path_completo[path_len - 1] = '\0';
-    return 0;
-}
-
-int validar_ruta(int sockfd, char *uri, char *document_root, 
-                 char *path_completo, size_t path_len, 
-                 struct stat *stat_archivo) {
-    
     char path_sanitizado[PATH_MAX];
     char real_doc_root[PATH_MAX];
     
-    int result = validar_ruta_safe(uri, document_root, path_completo, path_len,
-                                    stat_archivo, path_sanitizado, real_doc_root);
     
-    if (result == -1) {
-        enviar_error(sockfd, 404, "Not Found");
-    } else if (result == -2) {
-        enviar_error(sockfd, 500, "Internal Server Error");
-    } else if (result == -3) {
-        enviar_error(sockfd, 403, "Forbidden");
+    snprintf(path_completo, path_len, "%s%s", document_root, uri);
+
+    if (!realpath(path_completo, path_sanitizado)) {
+        return FS_ERROR_NOT_FOUND;
     }
+
+    if (!realpath(document_root, real_doc_root)) {
+        return FS_ERROR_INTERNAL_SERVER;
+    }
+
+    if (strncmp(path_sanitizado, real_doc_root, strlen(real_doc_root)) != 0) {
+        return FS_ERROR_FORBIDDEN;
+    }
+
+    if (stat(path_sanitizado, stat_archivo) < 0) {
+        return FS_ERROR_NOT_FOUND;
+    }
+
+    strncpy(path_completo, path_sanitizado, path_len - 1);
+    path_completo[path_len - 1] = '\0';
     
-    return result;
+    return FS_SUCCESS;
 }
 
-void servir_archivo(int sockfd, char *path) {
+fs_result_t servir_archivo(int sockfd, char *path) {
     char fecha_str[64];
     get_fecha(fecha_str, sizeof(fecha_str));
     FILE *archivo = fopen(path, "rb");
     
     if (!archivo) {
         printf("error en fopen de servir_archivo \n");
-        enviar_error(sockfd, 404, "Not Found"); 
-        return;
+        //enviar_error(sockfd, 404, "Not Found"); //TODO: SACAR DE ACA
+        return FS_ERROR_NOT_FOUND;
     }
 
     struct stat sbuf;
-    stat(path, &sbuf);
+    if (stat(path, &sbuf) < 0) {
+        fclose(archivo);
+        return FS_ERROR_NOT_FOUND;
+    }    
     long filesize = sbuf.st_size;
 
     const char *mime_type = obtener_tipo_mime(path);
@@ -108,9 +90,9 @@ void servir_archivo(int sockfd, char *path) {
         mime_type, filesize, fecha_str);
 
     if(enviar_todo(sockfd, headers, strlen(headers)) < 0) {
-        enviar_error(sockfd, 500, "Internal Server Error");
+        //enviar_error(sockfd, 500, "Internal Server Error"); //TODO: SACAR DE ACA
         fclose(archivo);
-        return;
+        return FS_ERROR_INTERNAL_SERVER;
     }
 
     printf("RESPUESTA header:\n%s\n", headers);
@@ -127,4 +109,6 @@ void servir_archivo(int sockfd, char *path) {
 
     fclose(archivo);
     printf("archivo servido: %s (%ld bytes, %s)\n", path, filesize, mime_type);
+
+    return FS_SUCCESS;
 }

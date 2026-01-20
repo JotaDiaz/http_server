@@ -14,9 +14,9 @@ void cliente_handler(int sockfd) {
     char buffer[TAMANO_BUFFER];
     int n;
 
-    char metodo_http[16];
-    char uri[256];
-    char version[16];
+    http_request_t request = {0};
+    request.sockfd = sockfd;
+
     
     memset(buffer, 0, TAMANO_BUFFER);
     
@@ -24,31 +24,30 @@ void cliente_handler(int sockfd) {
     n = recv_headers(sockfd, buffer, TAMANO_BUFFER - 1);
 
     if (n <= 0) {
-        if (n < 0) enviar_error(sockfd, 400, "Bad Request");
+        if (n < 0) enviar_error(&request, 400, "Bad Request");
         return;
     }
     
-    if (parsear_peticion(buffer, metodo_http, uri, version) < 0) {
+    if (parsear_peticion(buffer, &request) < 0) {
         printf("Fallo al parsear petición\n");
-        enviar_error(sockfd, 400, "Bad Request");
+        enviar_error(&request, 400, "Bad Request");
         return;
     }
 
-    if (!es_request_valido(uri, version)) {
+    if (!es_request_valido(&request)) {
         printf("Request inválido: URI o Versión incorrecta\n");
-        enviar_error(sockfd, 400, "Bad Request");
+        enviar_error(&request, 400, "Bad Request");
         return;
     }
 
-
-    if (strcasecmp(metodo_http, "GET") == 0) {
-        handle_GET(sockfd, uri, DOCUMENT_ROOT);
+    if (strcasecmp(request.metodo, "GET") == 0) {
+        handle_GET(&request, DOCUMENT_ROOT);
     }
-    else if (strcasecmp(metodo_http, "HEAD") == 0) {
-        enviar_error(sockfd, 501, "Not Implemented");
+    else if (strcasecmp(request.metodo, "HEAD") == 0) {
+        enviar_error(&request, 501, "Not Implemented");
     }
     else {
-        printf("Método no soportado: %s\n", metodo_http);
-        enviar_error(sockfd, 501, "Not Implemented");
+        printf("Método no soportado: %s\n", request.metodo);
+        enviar_error(&request, 501, "Not Implemented");
     }
 }

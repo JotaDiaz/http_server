@@ -6,7 +6,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "http_handler.h"
-
+#include "http.h"    
+#include "fs.h"      
+#include "net.h"     
 
 #define BACKLOG 10 // cant de peticiones pendientes en listen()
 #define PORT 3490
@@ -58,7 +60,8 @@ int main()
   if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) //syscall BIND y casteo a sockaddr
           error("error en bind");
 
-  listen(sockfd, BACKLOG);
+  if (listen(sockfd, BACKLOG) < 0)
+          error("error en listen");
 
   printf("escuchando puerto%d\n", port);
 
