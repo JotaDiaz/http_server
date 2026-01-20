@@ -58,7 +58,7 @@ int validar_ruta(char *uri, char *document_root, char *path_completo, size_t pat
     return FS_SUCCESS;
 }
 
-fs_result_t servir_archivo(int sockfd, char *path) {
+fs_result_t servir_archivo(int sockfd, char *path, int enviar_cuerpo) {
     char fecha_str[64];
     get_fecha(fecha_str, sizeof(fecha_str));
     FILE *archivo = fopen(path, "rb");
@@ -96,6 +96,11 @@ fs_result_t servir_archivo(int sockfd, char *path) {
     }
 
     printf("RESPUESTA header:\n%s\n", headers);
+
+    if(!enviar_cuerpo){
+        fclose(archivo);
+        return FS_SUCCESS;
+    }
     
     unsigned char file_buffer[4096]; 
     size_t bytes_leidos;

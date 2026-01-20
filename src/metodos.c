@@ -6,11 +6,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
-void handle_GET(http_request_t *request, char *document_root) {
+void handle_request(http_request_t *request, char *document_root, int enviar_body) {
     char path_completo[512];
     struct stat stat_archivo;
 
-    int resultado = validar_ruta(request->uri, document_root, path_completo, sizeof(path_completo), &stat_archivo);
+    fs_result_t resultado = validar_ruta(request->uri, document_root, path_completo, sizeof(path_completo), &stat_archivo);
 
 
     if (resultado < 0) {
@@ -27,8 +27,20 @@ void handle_GET(http_request_t *request, char *document_root) {
             return;
         }
     }
-
-    if (servir_archivo(request->sockfd, path_completo) != FS_SUCCESS) {
+    if (servir_archivo(request->sockfd, path_completo, enviar_body) != FS_SUCCESS) {
         printf("Aviso: No se pudo completar el envío de %s\n", path_completo);
     }
+
 }
+
+
+void handle_GET(http_request_t *request, char *document_root) {
+        handle_request(request, document_root, 1); 
+    }
+
+void handle_HEAD(http_request_t *request, char *document_root) {
+    handle_request(request, document_root, 0); 
+}
+
+
+

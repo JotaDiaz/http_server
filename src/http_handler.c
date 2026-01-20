@@ -44,7 +44,7 @@ void cliente_handler(int sockfd) {
         handle_GET(&request, DOCUMENT_ROOT);
     }
     else if (strcasecmp(request.metodo, "HEAD") == 0) {
-        enviar_error(&request, 501, "Not Implemented");
+        handle_HEAD(&request, DOCUMENT_ROOT);
     }
     else {
         printf("Método no soportado: %s\n", request.metodo);

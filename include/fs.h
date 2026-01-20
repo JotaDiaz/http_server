@@ -14,7 +14,7 @@ typedef enum {
 
 const char* obtener_tipo_mime(const char *path);
 
-fs_result_t servir_archivo(int sockfd, char *path);
+fs_result_t servir_archivo(int sockfd, char *path, int enviar_cuerpo);
 int validar_ruta(char *uri, char *document_root, char *path_completo, size_t path_len, struct stat *stat_archivo);
 
 #endif
