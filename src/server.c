@@ -60,7 +60,7 @@ int main()
 
   listen(sockfd, BACKLOG);
 
-  printf("escuchando %d", port);
+  printf("escuchando puerto%d\n", port);
 
 
   while (1) {

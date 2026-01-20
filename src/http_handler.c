@@ -9,6 +9,8 @@
 
 #define TAMANO_BUFFER 4096
 #define DOCUMENT_ROOT "./public"
+#define PATH_MAX 4096
+
 
 void cliente_handler(int sockfd){
     char buffer[TAMANO_BUFFER];
@@ -24,7 +26,11 @@ void cliente_handler(int sockfd){
     memset(buffer,0, TAMANO_BUFFER);
     
     //n = recv(sockfd, buffer, TAMANO_BUFFER -1, MSG_NOSIGNAL);
+    printf("ENTRANDO A RECV_HEADERS\n");
     n = recv_headers(sockfd,buffer, TAMANO_BUFFER -1);
+
+    printf("SALIENDO DE RECV_HEADERS CON VALOR %d\n",n);
+
     if (n <= 0) {
         enviar_error(sockfd, 400, "Bad Request");
         return;
@@ -32,7 +38,7 @@ void cliente_handler(int sockfd){
     
     printf("request recibida ---\n");
     
-    if(!parsear_peticion(buffer, metodo_http, uri, version)){
+    if(parsear_peticion(buffer, metodo_http, uri, version) < 0){
         printf("fallo parsear peticion\n");
         enviar_error(sockfd,400,"Bad Request");
         return;
@@ -61,7 +67,16 @@ void cliente_handler(int sockfd){
         return;
     }
 
+    if(validar_ruta(sockfd, uri, DOCUMENT_ROOT, path_completo, sizeof(path_completo), &stat_archivo) < 0){
+        printf("te estas pasando de vivo \n");
+        
+        return;
+    }
+    printf("salio del validar ruta \n");
 
+
+
+/*     
     sprintf(path_completo, "%s%s", DOCUMENT_ROOT, uri); //arma la ruta donde el servidor deberia buscar 
 
 
@@ -70,7 +85,7 @@ void cliente_handler(int sockfd){
         enviar_error(sockfd,404, "Not Found");
         return;
     }
-
+ */
     if (S_ISDIR(stat_archivo.st_mode)) {
         strncat(path_completo, "/index.html", sizeof(path_completo) - strlen(path_completo) - 1);
         if (stat(path_completo, &stat_archivo) < 0) {

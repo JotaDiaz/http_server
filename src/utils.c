@@ -1,12 +1,17 @@
+#include "utils.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
-#include "utils.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 
+#define PATH_MAX 4096
+
 #define MAX_REQUEST 8192
+char path_completo[PATH_MAX];
+char path_sanitizado[PATH_MAX];
+char real_document_root[PATH_MAX];
 
 
 void enviar_error(int sockfd, int codigo, char *mensaje)
@@ -66,10 +71,13 @@ int es_version_valida(char *version_http, const char **versiones_validas, int nu
     return 0;
 }
 
-int parsear_peticion(char *buffer, char *metodo_http, char *uri, char* version ){
-    int leidos = sscanf(buffer, "%s %s %s", metodo_http, uri, version);
-    return (leidos >= 3);
+int parsear_peticion(char *buffer, char *metodo_http, char *uri, char* version) {
+    int leidos = sscanf(buffer, "%15s %255s %15s",metodo_http, uri, version);
+    if (leidos < 3)
+        return -1;
+    return 0;
 }
+
 
 
 const char* obtener_tipo_mime(const char *path) {
@@ -149,7 +157,7 @@ void servir_archivo(int sockfd, char *path) {
     if(enviar_todo(sockfd,headers,strlen(headers)) < 0)
         enviar_error(sockfd,500, "Internal Server Error"); 
 
-
+    printf("RESPUESTA header:\n%s\n", headers);
     //el body va en paquetes de 4kb
     unsigned char file_buffer[4096]; 
     size_t bytes_leidos;
@@ -171,11 +179,10 @@ void servir_archivo(int sockfd, char *path) {
 
 ssize_t recv_headers(int sockfd, char *buffer, size_t max) {
     size_t total = 0;
-
     while (total < max - 1) {
         printf("recv_header\n");
         ssize_t n = recv(sockfd, buffer + total, max - 1 - total, 0);
-
+        
         if (n < 0)
             return -1;      
 
@@ -184,10 +191,43 @@ ssize_t recv_headers(int sockfd, char *buffer, size_t max) {
 
         total += n;
         buffer[total] = '\0';
-
+        
         if (strstr(buffer, "\r\n\r\n"))
             return total;   
     }
 
     return -1; 
+}
+
+
+int validar_ruta(int sockfd, char *uri, char *document_root, char *path_completo, size_t path_len, struct stat *stat_archivo ){
+
+    snprintf(path_completo, path_len,"%s%s", document_root, uri); //PATH COMPLETO SIN SANITIZAR
+
+    if (!realpath(path_completo, path_sanitizado)) { //realpath elimina intento de navegacion en el servidor por parte del cliente
+        enviar_error(sockfd, 404, "Not Found");
+        return -1;
+    }
+
+    if (!realpath(document_root, real_document_root)) {
+        enviar_error(sockfd, 500, "Internal Server Error");
+        return -1;
+    }
+
+    if (strncmp(path_sanitizado, real_document_root, strlen(real_document_root)) != 0) { //compara el comienzo de path_sanitizado vs real_document_root
+        enviar_error(sockfd, 403, "Forbidden");
+        return -1;
+    }
+
+    if (stat(path_sanitizado, stat_archivo) < 0) {
+        enviar_error(sockfd, 404, "Not Found");
+        return -1;
+    }
+
+
+    
+    strncpy(path_completo, path_sanitizado, path_len - 1); //escribe el path sanitizado en path_completo para usar en el handler
+    path_completo[path_len - 1] = '\0';
+    return 0;
+
 }
